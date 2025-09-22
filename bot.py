@@ -7,7 +7,8 @@ from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 
 # --- конфиг ---
-TOKEN = "8442006569:AAEH03mtwRrRj0-fkFXXm7j73AXmoGK1VD4"
+import os
+TOKEN = os.getenv("TOKEN")
 ADMIN_ID = 5597660360  # ваш Telegram user_id
 PROMO_CODE = "TGBOT6"
 PROMO_DISCOUNT = 6
