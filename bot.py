@@ -1,3 +1,9 @@
+from dotenv import load_dotenv
+load_dotenv()  # загружает переменные из .env
+import os
+
+TOKEN = os.getenv("TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 import asyncio
 import sqlite3
 from datetime import datetime
