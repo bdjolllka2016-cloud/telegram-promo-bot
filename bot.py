@@ -43,7 +43,7 @@ user_steps = {}
 
 # --- бот и диспетчер ---
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
-dp = Dispatcher(bot)
+dp = Dispatcher()  # <- исправлено: без аргументов
 
 # --- обработчики ---
 @dp.message(Command("start"))
@@ -110,8 +110,8 @@ async def handle_answers(message: types.Message):
         kb = ReplyKeyboardMarkup(keyboard=[[contact_button, skip_button]], resize_keyboard=True)
         await message.answer("📱 Отправьте свой номер телефона или пропустите:", reply_markup=kb)
 
-# --- обработка контакта или пропуска ---
-@dp.message(content_types=types.ContentType.CONTACT)
+# --- обработка контакта ---
+@dp.message(lambda msg: msg.contact is not None)
 async def handle_contact(message: types.Message):
     user_id = message.from_user.id
     phone = message.contact.phone_number
@@ -119,6 +119,7 @@ async def handle_contact(message: types.Message):
     conn.commit()
     await finalize_user(user_id, message)
 
+# --- обработка пропуска ---
 @dp.message()
 async def handle_skip(message: types.Message):
     if message.text == "Пропустить":
