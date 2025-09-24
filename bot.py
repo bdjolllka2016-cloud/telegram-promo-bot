@@ -43,7 +43,7 @@ user_steps = {}
 
 # --- бот и диспетчер ---
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
 # --- обработчики ---
 @dp.message(Command("start"))
