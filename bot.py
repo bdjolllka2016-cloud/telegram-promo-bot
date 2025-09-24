@@ -1,25 +1,18 @@
-from dotenv import load_dotenv
-load_dotenv()  # загружает переменные из .env
-import os
-
-TOKEN = "8442006569:AAHMQb9oBpRvEpIOETQutZ0ZGKDx8VVS7nM"
-ADMIN_ID = 5597660360
 import asyncio
 import sqlite3
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InputFile
 from aiogram.filters import Command
-from aiogram.client.default import DefaultBotProperties
 import os
 
 # --- конфиг ---
-TOKEN = os.getenv("TOKEN")  # Ваш Telegram Bot Token
-ADMIN_ID = int(os.getenv("ADMIN_ID", 0))  # ID администратора
+TOKEN = "8442006569:AAHMQb9oBpRvEpIOETQutZ0ZGKDx8VVS7nM"  # твой токен
+ADMIN_ID = 5597660360  # твой ID
 PROMO_CODE = "TGBOT6"
 PROMO_DISCOUNT = 6
 PROMO_END = "01.11.2025"
-PROMO_IMAGE = os.path.join(os.path.dirname(__file__), "promo.jpg")  # Абсолютный путь к картинке
+PROMO_IMAGE = os.path.join(os.path.dirname(__file__), "promo.jpg")  # путь к картинке
 
 # --- база данных ---
 conn = sqlite3.connect("bot.db")
@@ -48,8 +41,8 @@ conn.commit()
 user_steps = {}
 
 # --- бот и диспетчер ---
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
-dp = Dispatcher()  # <- исправлено: без аргументов
+bot = Bot(token=TOKEN, parse_mode="HTML")
+dp = Dispatcher()  # исправлено: без аргументов
 
 # --- обработчики ---
 @dp.message(Command("start"))
@@ -80,13 +73,11 @@ async def handle_answers(message: types.Message):
 
     step = user_steps[user_id]["step"]
 
-    # --- шаг 1 ---
     if step == 1:
         user_steps[user_id]["answers"]["q1"] = message.text
         user_steps[user_id]["step"] = 2
         await message.answer("2️⃣ В какой город необходима доставка?")
 
-    # --- шаг 2 ---
     elif step == 2:
         user_steps[user_id]["answers"]["q2"] = message.text
         user_steps[user_id]["step"] = 3
@@ -96,7 +87,6 @@ async def handle_answers(message: types.Message):
         )
         await message.answer("3️⃣ Нужна ли консультация?", reply_markup=kb)
 
-    # --- шаг 3 ---
     elif step == 3:
         user_steps[user_id]["answers"]["q3"] = message.text
         user_steps[user_id]["step"] = 4
@@ -105,12 +95,11 @@ async def handle_answers(message: types.Message):
             reply_markup=ReplyKeyboardRemove()
         )
 
-    # --- шаг 4 ---
     elif step == 4:
         user_steps[user_id]["answers"]["q4"] = message.text
         user_steps[user_id]["step"] = 5
 
-        # Кнопка отправки контакта или пропустить
+        # кнопка отправки контакта или пропустить
         contact_button = KeyboardButton(text="Отправить номер телефона", request_contact=True)
         skip_button = KeyboardButton(text="Пропустить")
         kb = ReplyKeyboardMarkup(keyboard=[[contact_button, skip_button]], resize_keyboard=True)
@@ -125,19 +114,16 @@ async def handle_contact(message: types.Message):
     conn.commit()
     await finalize_user(user_id, message)
 
-# --- обработка пропуска ---
-@dp.message()
+# --- обработка кнопки "Пропустить" ---
+@dp.message(lambda msg: msg.text == "Пропустить")
 async def handle_skip(message: types.Message):
-    if message.text == "Пропустить":
-        user_id = message.from_user.id
-        await finalize_user(user_id, message)
+    user_id = message.from_user.id
+    await finalize_user(user_id, message)
 
-# --- финализация: отправка промокода и админу ---
+# --- финализация ---
 async def finalize_user(user_id, message):
-    # Убираем клавиатуру
     await message.answer("✅ Спасибо за ответы!", reply_markup=ReplyKeyboardRemove())
 
-    # --- Сохраняем ответы ---
     ans = user_steps.get(user_id, {}).get("answers", {})
     cursor.execute(
         "INSERT OR REPLACE INTO answers (user_id, q1, q2, q3, q4) VALUES (?, ?, ?, ?, ?)",
@@ -147,7 +133,6 @@ async def finalize_user(user_id, message):
     if user_id in user_steps:
         del user_steps[user_id]
 
-    # --- Отправка промокода с картинкой ---
     try:
         photo = InputFile(PROMO_IMAGE)
         await message.answer_photo(
@@ -157,7 +142,6 @@ async def finalize_user(user_id, message):
     except:
         await message.answer(f"Ваш промокод: {PROMO_CODE} ({PROMO_DISCOUNT}% до {PROMO_END})")
 
-    # --- уведомление админу ---
     cursor.execute("SELECT first_name, username, phone FROM users WHERE user_id = ?", (user_id,))
     user_info = cursor.fetchone()
     first_name = user_info[0] if user_info else ""
@@ -172,7 +156,7 @@ async def finalize_user(user_id, message):
 # --- запуск ---
 async def main():
     print("🚀 Бот запускается...")
-    await dp.start_polling()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
